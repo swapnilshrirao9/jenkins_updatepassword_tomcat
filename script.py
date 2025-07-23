@@ -11,7 +11,7 @@ import time
 # Configs
 TOMCAT_IP = "182.12.0.13"
 SSH_USER = "ubuntu"
-TOMCAT_USER = "tomcat-user"
+TOMCAT_USER = "tomcat"
 TOMCAT_XML_PATH = "/usr/local/tomcat/conf/tomcat-users.xml"
 
 JENKINS_URL = "http://182.12.0.12:8080"
@@ -123,7 +123,7 @@ def update_tomcat_user_alpine(ip, user, key_path, tomcat_user, tomcat_pass, xml_
 
     print("[*] Restarting Tomcat...")
     # Alpine usually uses init.d or a direct script
-    stdin, stdout, stderr = ssh.exec_command("/usr/local/tomcat/bin/catalina.sh start || /usr/local/tomcat/bin/shutdown.sh && /usr/local/tomcat/bin/startup.sh")
+    stdin, stdout, stderr = ssh.exec_command("/usr/local/tomcat/bin/catalina.sh stop && /usr/local/tomcat/bin/catalina.sh start || /usr/local/tomcat/bin/shutdown.sh && /usr/local/tomcat/bin/startup.sh")
     out = stdout.read().decode()
     err = stderr.read().decode()
     print(out)
