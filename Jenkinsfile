@@ -5,7 +5,7 @@ pipeline {
         stage('Update Tomcat & Jenkins Credentials') {
             agent 
             steps {
-                node{${python-agent}}
+                sh 'chmod +x ./script.py'
                 sh 'python3 ./script.py'
             }
         }
