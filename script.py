@@ -19,7 +19,7 @@ TOMCAT_XML_PATH = "/opt/tomcat/conf/tomcat-users.xml"
 # Jenkins Info
 JENKINS_URL = "http://182.12.0.12:8080"  # <<<< Jenkins server IP
 JENKINS_USER = "admin"                   # <<<< Jenkins admin user
-JENKINS_TOKEN = "your_jenkins_api_token" # <<<< Jenkins API token
+JENKINS_TOKEN = "admin" # <<<< Jenkins API token
 CREDENTIAL_ID = "tomcat-user-creds"      # <<<< Jenkins credential ID
 
 # SSH Key Path (default: ~/.ssh/id_rsa)
