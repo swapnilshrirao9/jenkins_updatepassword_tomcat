@@ -37,21 +37,23 @@ def read_remote_file(ssh, remote_path):
 
 # Write XML back via SSH
 def write_remote_file(ssh, remote_path, content):
-    # Save locally first
+    # Save locally
     with tempfile.NamedTemporaryFile(delete=False, mode="w") as f:
         f.write(content)
         temp_path = f.name
 
-    # Upload via echo
     with open(temp_path, 'r') as f:
         lines = f.readlines()
 
-    commands = [f"echo '{line.strip().replace(\"'\", \"'\\''\")}' >> {remote_path}.tmp" for line in lines]
-
+    # Clean previous temp
     ssh.exec_command(f"rm -f {remote_path}.tmp")
-    for cmd in commands:
-        ssh.exec_command(cmd)
 
+    # Reconstruct file line by line
+    for line in lines:
+        safe_line = line.strip().replace("'", "'\\''")  # Escape single quotes for shell
+        ssh.exec_command(f"echo '{safe_line}' >> {remote_path}.tmp")
+
+    # Backup and replace
     ssh.exec_command(f"mv {remote_path} {remote_path}.bak")
     ssh.exec_command(f"mv {remote_path}.tmp {remote_path}")
 
