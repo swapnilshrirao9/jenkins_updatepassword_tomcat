@@ -13,8 +13,8 @@ import os
 # Tomcat Server Info
 TOMCAT_IP = "182.12.0.13"         # <<<< Tomcat server IP
 SSH_USER = "ubuntu"               # <<<< SSH user (key-based login)
-TOMCAT_USER = "tomcat"
-TOMCAT_XML_PATH = "/opt/tomcat/conf/tomcat-users.xml"
+TOMCAT_USER = "tomcat-user"
+TOMCAT_XML_PATH = "/usr/local/tomcat/conf/tomcat-users.xml"
 
 # Jenkins Info
 JENKINS_URL = "http://182.12.0.12:8080"  # <<<< Jenkins server IP
