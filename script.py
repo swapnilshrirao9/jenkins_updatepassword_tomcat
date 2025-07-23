@@ -123,7 +123,7 @@ def update_tomcat_user_alpine(ip, user, key_path, tomcat_user, tomcat_pass, xml_
 
     print("[*] Restarting Tomcat...")
     # Alpine usually uses init.d or a direct script
-    stdin, stdout, stderr = ssh.exec_command("/usr/local/tomcat/bin/catalina start || /usr/local/tomcat/bin/shutdown.sh && /usr/local/tomcat/bin/startup.sh")
+    stdin, stdout, stderr = ssh.exec_command("/usr/local/tomcat/bin/catalina.sh start || /usr/local/tomcat/bin/shutdown.sh && /usr/local/tomcat/bin/startup.sh")
     out = stdout.read().decode()
     err = stderr.read().decode()
     print(out)
