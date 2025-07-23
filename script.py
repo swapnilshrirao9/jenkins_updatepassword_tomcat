@@ -13,14 +13,14 @@ import os
 # Tomcat Server Info
 TOMCAT_IP = "182.12.0.13"         # <<<< Tomcat server IP
 SSH_USER = "ubuntu"               # <<<< SSH user (key-based login)
-TOMCAT_USER = "tomcat-api"
+TOMCAT_USER = "tomcat"
 TOMCAT_XML_PATH = "/opt/tomcat/conf/tomcat-users.xml"
 
 # Jenkins Info
 JENKINS_URL = "http://182.12.0.12:8080"  # <<<< Jenkins server IP
 JENKINS_USER = "admin"                   # <<<< Jenkins admin user
-JENKINS_TOKEN = "112f376662d3277dcd9f7625ac11913c17" # <<<< Jenkins API token
-CREDENTIAL_ID = "tomcat-user-creds"      # <<<< Jenkins credential ID
+JENKINS_TOKEN = "1142f244c61fa8d305a7b69c940e32a897" # <<<< Jenkins API token
+CREDENTIAL_ID = "tomcat-credentials"      # <<<< Jenkins credential ID
 
 # SSH Key Path (default: ~/.ssh/id_rsa)
 SSH_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa")  # <<<< Update if using a different key
