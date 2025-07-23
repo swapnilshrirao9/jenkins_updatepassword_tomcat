@@ -59,14 +59,17 @@ def write_remote_file(ssh, remote_path, content):
 
 # XML editor
 def modify_tomcat_users_xml(xml_str, username, password):
+    import xml.etree.ElementTree as ET
+
+    # Parse and register namespace to avoid blank ns tags
     root = ET.fromstring(xml_str)
 
-    # Remove old users
+    # Remove any existing user with same username
     for user in root.findall('user'):
         if user.attrib.get('username') == username:
             root.remove(user)
 
-    # Add new user
+    # Create new user
     new_user = ET.Element('user', {
         'username': username,
         'password': password,
@@ -74,8 +77,8 @@ def modify_tomcat_users_xml(xml_str, username, password):
     })
     root.append(new_user)
 
-    # Serialize XML
-    return ET.tostring(root, encoding='unicode', method='xml')
+    return ET.tostring(root, encoding='unicode')
+
 
 # Update Jenkins
 def update_jenkins_credentials(jenkins_url, cred_id, username, password, j_user, j_token):
