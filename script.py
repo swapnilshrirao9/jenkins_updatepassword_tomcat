@@ -1,6 +1,4 @@
 import paramiko
-import tempfile
-import xml.etree.ElementTree as ET
 import os
 import base64
 import secrets
@@ -8,7 +6,7 @@ import string
 import requests
 import time
 
-# Configs
+# === Configuration ===
 TOMCAT_IP = "182.12.0.13"
 SSH_USER = "ubuntu"
 TOMCAT_USER = "tomcat"
@@ -21,66 +19,32 @@ CREDENTIAL_ID = "tomcat-credentials"
 
 SSH_KEY_PATH = os.path.expanduser("~/.ssh/id_rsa")
 
-# Password generator
+# === Password Generator ===
 def generate_password(length=16):
     chars = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
     return ''.join(secrets.choice(chars) for _ in range(length))
 
-# Read remote XML via SSH
-def read_remote_file(ssh, remote_path):
-    stdin, stdout, stderr = ssh.exec_command(f"cat {remote_path}")
-    content = stdout.read().decode()
+# === Write using sed on remote ===
+def write_remote_file(ssh, remote_path, username, new_password):
+    # Escape special characters for sed
+    escaped_pass = new_password.replace('&', '\\&').replace('$', '\\$').replace('`', '\\`').replace('"', '\\"').replace('`', '\\`').replace("'", "'\"'\"'")
+
+    print(f"[*] Updating password for user '{username}' in remote tomcat-users.xml...")
+
+    # Backup the original file
+    ssh.exec_command(f"cp {remote_path} {remote_path}.bak")
+
+    # sed command to replace password for matching user
+    sed_cmd = f"sed -i 's/\\(<user[^>]*username=[\"\\'']{username}[\"\\''][^>]*password=[\"\\'']\\)[^\"\\'']*\\([\"\\''][^>]*>\\)/\\1{escaped_pass}\\2/' {remote_path}"
+
+    stdin, stdout, stderr = ssh.exec_command(sed_cmd)
     err = stderr.read().decode()
     if err:
-        raise RuntimeError(f"Failed to read remote file: {err}")
-    return content
+        print(f"[!] Error updating file with sed: {err}")
+    else:
+        print("[✓] Password updated via sed.")
 
-# Write XML back via SSH
-def write_remote_file(ssh, remote_path, content):
-    # Save locally
-    with tempfile.NamedTemporaryFile(delete=False, mode="w") as f:
-        f.write(content)
-        temp_path = f.name
-
-    with open(temp_path, 'r') as f:
-        lines = f.readlines()
-
-    # Clean previous temp
-    ssh.exec_command(f"rm -f {remote_path}.tmp")
-
-    # Reconstruct file line by line
-    for line in lines:
-        safe_line = line.strip().replace("'", "'\\''")  # Escape single quotes for shell
-        ssh.exec_command(f"echo '{safe_line}' >> {remote_path}.tmp")
-
-    # Backup and replace
-    ssh.exec_command(f"mv {remote_path} {remote_path}.bak")
-    ssh.exec_command(f"mv {remote_path}.tmp {remote_path}")
-
-# XML editor
-def modify_tomcat_users_xml(xml_str, username, password):
-    import xml.etree.ElementTree as ET
-
-    # Parse and register namespace to avoid blank ns tags
-    root = ET.fromstring(xml_str)
-
-    # Remove any existing user with same username
-    for user in root.findall('user'):
-        if user.attrib.get('username') == username:
-            root.remove(user)
-
-    # Create new user
-    new_user = ET.Element('user', {
-        'username': username,
-        'password': password,
-        'roles': 'manager-gui'
-    })
-    root.append(new_user)
-
-    return ET.tostring(root, encoding='unicode')
-
-
-# Update Jenkins
+# === Jenkins Credential Update ===
 def update_jenkins_credentials(jenkins_url, cred_id, username, password, j_user, j_token):
     print("[*] Updating Jenkins credentials...")
     cred_url = f"{jenkins_url}/credentials/store/system/domain/_/credential/{cred_id}/config.xml"
@@ -107,43 +71,32 @@ def update_jenkins_credentials(jenkins_url, cred_id, username, password, j_user,
         print(f"[!] Failed to update Jenkins credentials. Status: {response.status_code}")
         print(response.text)
 
-# Main handler
-def update_tomcat_user_alpine(ip, user, key_path, tomcat_user, tomcat_pass, xml_path):
-    print("[*] Connecting to Alpine-based Tomcat server...")
+# === Main Tomcat Update ===
+def update_tomcat_user_sed(ip, user, key_path, tomcat_user, tomcat_pass, xml_path):
+    print("[*] Connecting to Tomcat server via SSH...")
     key = paramiko.RSAKey.from_private_key_file(key_path)
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(ip, username=user, pkey=key)
 
-    print("[*] Reading remote tomcat-users.xml...")
-    original_xml = read_remote_file(ssh, xml_path)
+    write_remote_file(ssh, xml_path, tomcat_user, tomcat_pass)
 
-    print("[*] Modifying XML...")
-    updated_xml = modify_tomcat_users_xml(original_xml, tomcat_user, tomcat_pass)
-
-    print("[*] Uploading modified XML...")
-    write_remote_file(ssh, xml_path, updated_xml)
-
-    print("[*] Restarting Tomcat...")
-    # Alpine usually uses init.d or a direct script
-    stdin, stdout, stderr = ssh.exec_command("/usr/local/tomcat/bin/catalina.sh stop && /usr/local/tomcat/bin/catalina.sh start || /usr/local/tomcat/bin/shutdown.sh && /usr/local/tomcat/bin/startup.sh")
-    out = stdout.read().decode()
-    err = stderr.read().decode()
-    print(out)
-    if err:
-        print(f"[!] Error restarting Tomcat: {err}")
+    print("[*] Restarting Tomcat service...")
+    ssh.exec_command("/usr/local/tomcat/bin/shutdown.sh")
+    time.sleep(5)
+    ssh.exec_command("/usr/local/tomcat/bin/startup.sh")
+    print("[✓] Tomcat restarted.")
 
     ssh.close()
-    print("[✓] Tomcat user updated and server restarted.")
 
-# Entrypoint
+# === Entrypoint ===
 def main():
-    print("=== Tomcat + Jenkins Credential Sync Script (Alpine Mode) ===")
+    print("=== Tomcat + Jenkins Credential Sync Script (sed version) ===")
 
     new_pass = generate_password()
-    print(f"[*] Generated new password for {TOMCAT_USER}: {new_pass}")
+    print(f"[*] Generated new password for user '{TOMCAT_USER}': {new_pass}")
 
-    update_tomcat_user_alpine(TOMCAT_IP, SSH_USER, SSH_KEY_PATH, TOMCAT_USER, new_pass, TOMCAT_XML_PATH)
+    update_tomcat_user_sed(TOMCAT_IP, SSH_USER, SSH_KEY_PATH, TOMCAT_USER, new_pass, TOMCAT_XML_PATH)
 
     time.sleep(3)
 
