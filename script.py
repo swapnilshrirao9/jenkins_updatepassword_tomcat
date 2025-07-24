@@ -79,15 +79,37 @@ def update_tomcat_user_sed(ip, user, key_path, tomcat_user, tomcat_pass, xml_pat
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(ip, username=user, pkey=key)
 
-    write_remote_file(ssh, xml_path, tomcat_user, tomcat_pass)
-
-    print("[*] Restarting Tomcat service...")
+    # Step 1: Stop Tomcat first
+    print("[*] Stopping Tomcat...")
     ssh.exec_command("/usr/local/tomcat/bin/shutdown.sh")
     time.sleep(5)
+
+    # Step 2: Prepare sed command
+    print("[*] Updating tomcat-users.xml via sed...")
+
+    temp_file = "/tmp/tomcat-users.xml.tmp"
+    escaped_pass = tomcat_pass.replace('&', '\\&').replace('$', '\\$').replace('`', '\\`').replace('"', '\\"').replace("'", "'\"'\"'")
+
+    sed_cmd = (
+        f"sed 's/\\(<user[^>]*username=[\"\\'']{tomcat_user}[\"\\''][^>]*password=[\"\\'']\\)[^\"\\'']*\\([\"\\''][^>]*>\\)/\\1{escaped_pass}\\2/' "
+        f"{xml_path} > {temp_file} && cp {xml_path} {xml_path}.bak && mv {temp_file} {xml_path}"
+    )
+
+    stdin, stdout, stderr = ssh.exec_command(sed_cmd)
+    err = stderr.read().decode()
+    if err:
+        print(f"[!] Error updating file with sed: {err}")
+    else:
+        print("[✓] Password updated in tomcat-users.xml.")
+
+    # Step 3: Restart Tomcat
+    print("[*] Starting Tomcat...")
     ssh.exec_command("/usr/local/tomcat/bin/startup.sh")
-    print("[✓] Tomcat restarted.")
+    time.sleep(3)
 
     ssh.close()
+    print("[✓] Tomcat restarted successfully.")
+
 
 # === Entrypoint ===
 def main():
