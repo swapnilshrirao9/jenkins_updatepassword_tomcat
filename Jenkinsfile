@@ -37,16 +37,11 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'for_jenkinscredentials', variable: 'JENKINS_API_TOKEN')]) {
                     sh '''
-                        echo "🔑 Fetching Jenkins crumb..."
-                        CRUMB=$(curl -s -u "$JENKINS_USER:$JENKINS_API_TOKEN" "$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
-
-                        echo "🚀 Creating credential ID: ${CREDENTIAL_ID}"
-
-                        curl -s -X POST "$JENKINS_URL/credentials/store/system/domain/_/createCredentials" \
-                          -u "$JENKINS_USER:$JENKINS_API_TOKEN" \
-                          -H "Content-Type: application/x-www-form-urlencoded" \
-                          -H "$CRUMB" \
-                          --data-urlencode 'json={
+                        curl -s -X POST "$JENKINS_URL/credentials/store/system/domain/_/credential/${CREDENTIAL_ID}/updateSubmit" \
+                        -u $JENKINS_USER:$JENKINS_API_TOKEN \
+                        -H "Content-Type: application/x-www-form-urlencoded" \
+                        -H "$(curl -s -u $JENKINS_USER:$JENKINS_API_TOKEN http://awx.local.com:8080/crumbIssuer/api/json | jq -r '.crumbRequestField + ":" + .crumb')" \
+                        --data-urlencode 'json={
                             "": "0",
                             "credentials": {
                                 "scope": "GLOBAL",
