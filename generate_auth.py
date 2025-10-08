@@ -15,7 +15,7 @@ def create_basic_auth(username, password):
     return base64.b64encode(token.encode()).decode()
 
 def main():
-    username = os.getenv("INPUT_USERNAME") or input("Enter username: ")
+    username = sys.argv[1]
     password = generate_password()
     auth_b64 = create_basic_auth(username, password)
     
