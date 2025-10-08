@@ -1,71 +1,74 @@
-import httplib
-import json
+#!/usr/bin/env python3
 import os
-import sys
 import base64
-import random
+import secrets
 import string
+import requests
+
+# ======== CONFIG ========
+JENKINS_URL = os.getenv("JENKINS_URL", "http://localhost:8080")
+JENKINS_USER = os.getenv("JENKINS_USER", "admin")
+JENKINS_API_TOKEN = os.getenv("JENKINS_API_TOKEN", "")
+CREDENTIAL_ID = "generated-auth"   # You can make this dynamic if needed
+# ========================
 
 def generate_password(length=16):
     chars = string.ascii_letters + string.digits + string.punctuation
-    # Use os.urandom for cryptographic randomness
-    secure_random = random.SystemRandom()
-    return ''.join(secure_random.choice(chars) for _ in range(length))
+    return ''.join(secrets.choice(chars) for _ in range(length))
 
-# Jenkins and Tomcat config
-JENKINS_HOST = sys.argv[1]
-JENKINS_PORT = 8080
-JENKINS_USER = sys.argv[2]
-JENKINS_TOKEN = sys.argv[3]
-NEW_PASSWORD =  generate_password(20)
-TOMCAT_HOST = sys.argv[4]
-TOMCAT_PORT = 8082
-TOMCAT_USER = sys.argv[5]
-TOMCAT_PASS = sys.argv[6]  # Same as Jenkins credential
-CREDENTIAL_ID = sys.argv[7]
+def create_basic_auth(username, password):
+    token = f"{username}:{password}"
+    return base64.b64encode(token.encode()).decode()
 
-def get_auth_header(user, token):
-    auth = base64.b64encode('%s:%s' % (user, token))
-    return {'Authorization': 'Basic %s' % auth}
+def save_to_jenkins_credentials(username, password):
+    """
+    Adds username & password to Jenkins credentials store using REST API.
+    """
+    # Jenkins Crumb for CSRF protection
+    crumb_data = requests.get(
+        f"{JENKINS_URL}/crumbIssuer/api/json",
+        auth=(JENKINS_USER, JENKINS_API_TOKEN)
+    ).json()
+    
+    crumb = {crumb_data['crumbRequestField']: crumb_data['crumb']}
 
-def update_jenkins_credential():
-    conn = httplib.HTTPConnection(JENKINS_HOST, JENKINS_PORT)
-    headers = get_auth_header(JENKINS_USER, JENKINS_TOKEN)
-    headers['Content-Type'] = 'application/json'
-
-    # Construct payload to update credential
     payload = {
         "": "0",
         "credentials": {
             "scope": "GLOBAL",
             "id": CREDENTIAL_ID,
-            "username": TOMCAT_USER,
-            "password": NEW_PASSWORD,
-            "description": "Updated Tomcat user password",
+            "username": username,
+            "password": password,
+            "description": "Auto-generated Basic Auth Credential",
             "$class": "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"
         }
     }
 
-    json_data = json.dumps(payload)
+    response = requests.post(
+        f"{JENKINS_URL}/credentials/store/system/domain/_/createCredentials",
+        headers={**crumb, "Content-Type": "application/json"},
+        json=payload,
+        auth=(JENKINS_USER, JENKINS_API_TOKEN)
+    )
 
-    # Jenkins API endpoint to update credentials
-    endpoint = '/credentials/store/system/domain/_/credential/%s/config.xml' % CREDENTIAL_ID
-    conn.request('POST', endpoint, json_data, headers)
-    response = conn.getresponse()
-    print("Jenkins response:", response.status, response.reason)
-    conn.close()
+    if response.status_code == 200:
+        print(f"✅ Credentials '{CREDENTIAL_ID}' saved successfully in Jenkins.")
+    else:
+        print(f"❌ Failed to save credentials: {response.status_code} {response.text}")
 
-def update_tomcat_user():
-    conn = httplib.HTTPConnection(TOMCAT_HOST, TOMCAT_PORT)
-    headers = get_auth_header(TOMCAT_USER, TOMCAT_PASS)
-    headers['Content-Type'] = 'application/json'
+def main():
+    # Step 1: Get username from Jenkins input parameter (or CLI)
+    username = os.getenv("INPUT_USERNAME") or input("Enter username: ")
 
-    # Example: Send a dummy request to verify password works
-    conn.request('GET', '/manager/text/list', '', headers)
-    response = conn.getresponse()
-    print("Tomcat response:", response.status, response.reason)
-    conn.close()
+    # Step 2: Generate password
+    password = generate_password()
 
-if __name__ == '__main__':
-    update_jenkins_credential()
-    update_tomcat_user()
+    # Step 3: Encode Basic Auth
+    auth_base64 = create_basic_auth(username, password)
+    print(f"Base64 Token: {auth_base64}")
+
+    # Step 4: Save to Jenkins Credentials
+    save_to_jenkins_credentials(username, password)
+
+if __name__ == "__main__":
+    main()
