@@ -6,7 +6,7 @@ import string
 import requests
 
 # ======== CONFIG ========
-JENKINS_URL = os.getenv("JENKINS_URL", "http://localhost:8080")
+JENKINS_URL = os.getenv("JENKINS_URL", "http://awx.local.com:8080")
 JENKINS_USER = os.getenv("JENKINS_USER", "admin")
 JENKINS_API_TOKEN = os.getenv("JENKINS_API_TOKEN", "")
 CREDENTIAL_ID = "generated-auth"   # You can make this dynamic if needed
