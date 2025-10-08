@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'python-agent' }
     parameters {
         string(name: 'USERNAME', description: 'Enter username for Basic Auth')
     }
