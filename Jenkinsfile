@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     def result = sh(
-                        script: "python generate_password.py ${params.USERNAME}",
+                        script: "python generate_auth.py ${params.USERNAME}",
                         returnStdout: true
                     ).trim()
                     env.GENERATED_PASSWORD = result
@@ -66,4 +66,5 @@ pipeline {
         }
     }
 }
+
 
