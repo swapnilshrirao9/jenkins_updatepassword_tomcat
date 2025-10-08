@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     // Run Python script and parse JSON output
-                    sh 'echo username is ${params.USERNAME}'
+                  //  sh 'echo username is ${params.USERNAME}'
                     def result = sh(
                         script: """python3 generate_auth.py ${params.USERNAME}""",
                         returnStdout: true
