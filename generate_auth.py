@@ -28,7 +28,7 @@ def main():
     }
 
     # Output JSON
-  print(auth_b64)
+   print(json.dumps(result))
 
 if __name__ == "__main__":
     main()
