@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        JENKINS_URL = 'http://awx.local.com:8080'
+        JENKINS_URL = 'http://182.12.0.12:8080'
         JENKINS_USER = 'admin'
         // ⚠️ Replace with your real Jenkins API token credential ID
         API_TOKEN_CRED_ID = 'for_jenkinscredentials'
@@ -66,6 +66,7 @@ pipeline {
         }
     }
 }
+
 
 
 
