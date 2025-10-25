@@ -10,7 +10,7 @@ pipeline {
         JENKINS_URL = 'http://awx.local.com:8080'
         JENKINS_USER = 'admin'
         // ⚠️ Replace with your real Jenkins API token credential ID
-        API_TOKEN_CRED_ID = 'jenkins-api-token'
+        API_TOKEN_CRED_ID = 'for_jenkinscredentials'
     }
 
     stages {
@@ -66,5 +66,6 @@ pipeline {
         }
     }
 }
+
 
 
