@@ -24,8 +24,6 @@ def main():
     auth_b64 = create_basic_auth(username, password)
 
     result = {
-        "username": username,
-        "password": password,
         "auth_base64": auth_b64
     }
 
