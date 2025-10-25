@@ -1,30 +1,35 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 import base64
-import secrets
+import random
 import string
 import json
 import sys
-import os
 
 def generate_password(length=16):
     chars = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
-    return ''.join(secrets.choice(chars) for _ in range(length))
+    secure_rand = random.SystemRandom()
+    return ''.join(secure_rand.choice(chars) for _ in range(length))
 
 def create_basic_auth(username, password):
     token = "{}:{}".format(username, password)
-    return base64.b64encode(token.encode()).decode()
+    return base64.b64encode(token)
 
 def main():
+    if len(sys.argv) < 2:
+        print("Usage: python2 generate_auth.py <username>")
+        sys.exit(1)
+
     username = sys.argv[1]
     password = generate_password()
     auth_b64 = create_basic_auth(username, password)
-    
-    # Output JSON for easy capture in Jenkins
+
     result = {
         "username": username,
         "password": password,
         "auth_base64": auth_b64
     }
+
+    # Output JSON
     print(json.dumps(result))
 
 if __name__ == "__main__":
