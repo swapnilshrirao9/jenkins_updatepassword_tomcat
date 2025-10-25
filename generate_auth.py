@@ -18,12 +18,19 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python2 generate_auth.py <username>")
         sys.exit(1)
+
     username = sys.argv[1]
     password = generate_password()
     auth_b64 = create_basic_auth(username, password)
 
-# Output JSON
-  print(auth_b64)
-if __name__ == "__main__":
+    result = {
+        "username": username,
+        "password": password,
+        "auth_base64": auth_b64
+    }
 
+    # Output JSON
+    print(result["auth_base64"])
+
+if __name__ == "__main__":
     main()
