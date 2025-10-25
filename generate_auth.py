@@ -30,7 +30,7 @@ def main():
     }
 
     # Output JSON
-    print(result["auth_base64"])
+    print(result["password"])
 
 if __name__ == "__main__":
     main()
