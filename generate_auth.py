@@ -24,11 +24,11 @@ def main():
     auth_b64 = create_basic_auth(username, password)
 
     result = {
-        "auth_base64": auth_b64
+         auth_b64
     }
 
     # Output JSON
-    print(json.dumps(result))
+  print(auth_b64)
 
 if __name__ == "__main__":
     main()
