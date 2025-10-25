@@ -11,7 +11,7 @@ def generate_password(length=16):
     return ''.join(secrets.choice(chars) for _ in range(length))
 
 def create_basic_auth(username, password):
-    token = f"{username}:{password}"
+    token = "{}:{}".format(username, password)
     return base64.b64encode(token.encode()).decode()
 
 def main():
