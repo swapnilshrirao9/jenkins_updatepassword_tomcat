@@ -1,20 +1,16 @@
 pipeline {
     agent any
-
     parameters {
-        string(name: 'USERNAME', description: 'Enter the Jenkins credential username')
+        string(name: 'USERNAME_credential_update', description: 'Enter the Jenkins credential username')
         string(name: 'CREDENTIAL_ID', description: 'Enter existing Jenkins Credential ID to update')
     }
-
     environment {
         JENKINS_URL = 'http://182.12.0.12:8080'
         JENKINS_USER = 'admin'
         // ⚠️ Replace with your real Jenkins API token credential ID
         API_TOKEN_CRED_ID = 'for_jenkinscredentials'
     }
-
     stages {
-
         stage('Generate Base64 Password') {
             steps {
                 script {
@@ -23,50 +19,38 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     env.GENERATED_PASSWORD = result
-                    echo "🔐 Generated password: ${result}"
+                    echo " Generated password: ${result}"
+                    echo "GENERATED_PASSWORD: ${env.GENERATED_PASSWORD }"
                 }
             }
         }
-
+        stage('check variable value'){
+            steps {
+                echo 'print password: ${env.GENERATED_PASSWORD }'
+            }
+        }
         stage('Update Jenkins Credential Password') {
             steps {
-                withCredentials([string(credentialsId: "${env.API_TOKEN_CRED_ID}", variable: 'JENKINS_API_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: "for_jenkinscredentials", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
-                        echo "🔑 Fetching Jenkins crumb..."
-                        CRUMB=$(curl -s -u "$JENKINS_USER:$JENKINS_API_TOKEN" "$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
-
-                        echo "⚙️ Updating existing credential ${CREDENTIAL_ID}..."
-                        RESPONSE=$(curl -s -o /tmp/update_resp.txt -w "%{http_code}" -X POST "$JENKINS_URL/credentials/store/system/domain/_/credential/${CREDENTIAL_ID}/updateSubmit" \
-                          -u "$JENKINS_USER:$JENKINS_API_TOKEN" \
-                          -H "Content-Type: application/x-www-form-urlencoded" \
-                          -H "$CRUMB" \
-                          --data-urlencode 'json={
-                            "": "0",
-                            "credentials": {
-                                "scope": "GLOBAL",
-                                "id": "'"${CREDENTIAL_ID}"'",
-                                "username": "'"${USERNAME}"'",
-                                "password": "'"${GENERATED_PASSWORD}"'",
-                                "description": "Updated automatically via Jenkins Pipeline",
-                                "$class": "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"
-                            }
-                          }')
-
-                        if [ "$RESPONSE" = "200" ]; then
-                            echo "✅ Credential ${CREDENTIAL_ID} updated successfully."
-                        else
-                            echo "❌ Failed to update credential. HTTP status: $RESPONSE"
-                            echo "Response body:"
-                            cat /tmp/update_resp.txt
-                            exit 1
-                        fi
+                    #!/bin/bash
+                    echo "password: \${result}"
+                    CRUMB=$(curl -s -u "${USERNAME}:${PASSWORD}" "$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
+                    echo "crumb=$CRUMB"
+                    curl -X POST "$JENKINS_URL/credentials/store/system/domain/_/credential/User_test/config.xml" \
+                      --user "${USERNAME}:${PASSWORD}" \
+                      -H "$CRUMB" \
+                      -H "Content-Type: application/xml" \
+                      --data-raw '<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+                        <scope>GLOBAL</scope>
+                        <id>User_test</id>
+                        <description>Updated credential</description>
+                        <username>swapnil</username>
+                        <password>\${env.GENERATED_PASSWORD }</password>
+                      </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>'
                     '''
                 }
             }
         }
     }
 }
-
-
-
-
