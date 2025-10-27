@@ -32,23 +32,25 @@ pipeline {
         stage('Update Jenkins Credential Password') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "for_jenkinscredentials", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh """
-                    #!/bin/bash
-                    echo "password: ${env.GENERATED_PASSWORD}"
-                    CRUMB=$(curl -s -u "\${USERNAME}:\${PASSWORD}" "\$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
-                    echo "crumb=\$CRUMB"
-                    curl -X POST "\$JENKINS_URL/credentials/store/system/domain/_/credential/User_test/config.xml" \
-                      --user "\${USERNAME}:\${PASSWORD}" \
-                      -H "\$CRUMB" \
-                      -H "Content-Type: application/xml" \
-                      --data-raw '<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-                        <scope>GLOBAL</scope>
-                        <id>User_test</id>
-                        <description>Updated credential</description>
-                        <username>swapnil</username>
-                        <password>${env.GENERATED_PASSWORD}</password>
-                      </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>'
-                    """
+                    withEnv(["GENERATED_PASSWORD=${env.GENERATED_PASSWORD}"]) {
+                        sh '''
+                        #!/bin/bash
+                        echo "password: $GENERATED_PASSWORD"
+                        CRUMB=$(curl -s -u "${USERNAME}:${PASSWORD}" "$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
+                        echo "crumb=$CRUMB"
+                        curl -X POST "$JENKINS_URL/credentials/store/system/domain/_/credential/User_test/config.xml" \
+                          --user "${USERNAME}:${PASSWORD}" \
+                          -H "$CRUMB" \
+                          -H "Content-Type: application/xml" \
+                          --data-raw "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+                            <scope>GLOBAL</scope>
+                            <id>User_test</id>
+                            <description>Updated credential</description>
+                            <username>swapnil</username>
+                            <password>$GENERATED_PASSWORD</password>
+                          </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>"
+                        '''
+                    }
                 }
             }
         }
