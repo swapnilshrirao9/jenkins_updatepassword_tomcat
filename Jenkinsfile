@@ -15,7 +15,7 @@ pipeline {
             steps {
                 script {
                     def result = sh(
-                        script: "python generate_auth.py ${params.USERNAME}",
+                        script: "python generate_auth.py ${params.USERNAME_credential_update}",
                         returnStdout: true
                     ).trim()
                     env.GENERATED_PASSWORD = result
@@ -26,29 +26,29 @@ pipeline {
         }
         stage('check variable value'){
             steps {
-                echo 'print password: ${env.GENERATED_PASSWORD }'
+                echo "print password: ${env.GENERATED_PASSWORD }"
             }
         }
         stage('Update Jenkins Credential Password') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "for_jenkinscredentials", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh '''
+                    sh """
                     #!/bin/bash
-                    echo "password: \${result}"
-                    CRUMB=$(curl -s -u "${USERNAME}:${PASSWORD}" "$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
-                    echo "crumb=$CRUMB"
-                    curl -X POST "$JENKINS_URL/credentials/store/system/domain/_/credential/User_test/config.xml" \
-                      --user "${USERNAME}:${PASSWORD}" \
-                      -H "$CRUMB" \
+                    echo "password: ${env.GENERATED_PASSWORD}"
+                    CRUMB=$(curl -s -u "\${USERNAME}:\${PASSWORD}" "\$JENKINS_URL/crumbIssuer/api/json" | jq -r '.crumbRequestField + ":" + .crumb')
+                    echo "crumb=\$CRUMB"
+                    curl -X POST "\$JENKINS_URL/credentials/store/system/domain/_/credential/User_test/config.xml" \
+                      --user "\${USERNAME}:\${PASSWORD}" \
+                      -H "\$CRUMB" \
                       -H "Content-Type: application/xml" \
                       --data-raw '<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
                         <scope>GLOBAL</scope>
                         <id>User_test</id>
                         <description>Updated credential</description>
                         <username>swapnil</username>
-                        <password>\${env.GENERATED_PASSWORD }</password>
+                        <password>${env.GENERATED_PASSWORD}</password>
                       </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>'
-                    '''
+                    """
                 }
             }
         }
